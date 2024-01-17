@@ -79,7 +79,7 @@ class Twitter extends Adapter {
         '*****************************************CALLED PURCHROMIUM RESOLVER*****************************************',
       );
       this.browser = await stats.puppeteer.launch({
-        // headless: false,
+        headless: false,
         userAgent:
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
@@ -427,14 +427,14 @@ class Twitter extends Adapter {
    * @description Crawls the queue of known links
    */
   crawl = async query => {
-      console.log('valid? ', this.sessionValid);
-      if (this.sessionValid == true) {
-        this.searchTerm = query.searchTerm;
-        this.round = query.round;
-        await this.fetchList(query.query, query.round);
-      } else {
-        await this.negotiateSession();
-      }
+    console.log('valid? ', this.sessionValid);
+    if (this.sessionValid == true) {
+      this.searchTerm = query.searchTerm;
+      this.round = query.round;
+      await this.fetchList(query.query, query.round);
+    } else {
+      await this.negotiateSession();
+    }
   };
 
   /**
@@ -497,6 +497,8 @@ class Twitter extends Adapter {
                   round: round,
                   data: data,
                 });
+              } else {
+                console.log('Item already exists in database');
               }
             }
           } catch (e) {
@@ -507,11 +509,13 @@ class Twitter extends Adapter {
         }
 
         try {
-          if (this.round !== (await namespaceWrapper.getRound())) {
-            console.log('round changed, closed old browser');
-            this.browser.close();
-            break;
-          }
+          // Check if the round has changed
+          // if (this.round !== (await namespaceWrapper.getRound())) {
+          //   console.log('round changed, closed old browser');
+          //   this.browser.close();
+          //   break;
+          // }
+
           // Scroll the page for next batch of elements
           await this.scrollPage(this.page);
 

@@ -98,9 +98,18 @@ class TwitterTask {
       console.log(
         'No Keywords from middle server, loading local keywords.json',
       );
-      const wordsList = require('./top1000words.json');
-      const randomIndex = Math.floor(Math.random() * wordsList.length);
-      keyword = wordsList[randomIndex]; // Load local JSON data
+      let company = require('./company.json');
+      let key = require('./keywords.json');
+
+      let randomCom = Math.floor(Math.random() * company.length);
+      randomCom = company[randomCom]; // Load local JSON data
+      let randomKey = Math.floor(Math.random() * key.length);
+      randomKey = key[randomKey]; // Load local JSON data
+
+      console.log('randomCom', randomCom);
+      console.log('randomKey', randomKey);
+
+      keyword = `${randomCom} ${randomKey}`;
     }
 
     return encodeURIComponent(keyword);
@@ -121,7 +130,7 @@ class TwitterTask {
     let query = {
       limit: 100, // unused
       searchTerm: this.searchTerm,
-      query: `https://twitter.com/search?q=${this.searchTerm}&src=typed_query&f=live`,
+      query: `https://twitter.com/search?q=${'Switch'}%20until%3A2023-12-31%20since%3A2022-07-01&src=typed_query&f=top`,
       depth: 3,
       round: this.round,
       recursive: true,
