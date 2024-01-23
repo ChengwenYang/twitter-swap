@@ -41,6 +41,7 @@ class TwitterTask {
     this.db = new Data('db', []);
     this.db.initializeData();
     this.initialize();
+    this.date = new Date('2022-07-01');
 
     this.setAdapter = async () => {
       const username = process.env.TWITTER_USERNAME;
@@ -68,9 +69,6 @@ class TwitterTask {
   async initialize() {
     console.log('initializing twitter task');
     this.searchTerm = await this.fetchSearchTerms();
-    //Store this round searchTerm
-    console.log('creating search term', this.searchTerm, this.round);
-    this.db.createSearchTerm(this.searchTerm, this.round);
   }
 
   /**
@@ -78,7 +76,7 @@ class TwitterTask {
    * @description return the search terms to use for the crawler
    * @returns {array} - an array of search terms
    */
-  async fetchSearchTerms() {
+  async fetchSearchTerms(maxAttempts = 21) {
     let keyword;
 
     try {
@@ -95,23 +93,44 @@ class TwitterTask {
       console.log('keywords from middle server', response.data);
       keyword = response.data;
     } catch (error) {
-      console.log(
-        'No Keywords from middle server, loading local keywords.json',
-      );
-      let company = require('./company.json');
-      let key = require('./keywords.json');
+      while (true) {
+        let attemptCount = 0;
+        while (attemptCount++ < maxAttempts) {
+          let company = require('./company.json');
+          let key = require('./keywords.json');
 
-      let randomCom = Math.floor(Math.random() * company.length);
-      randomCom = company[randomCom]; // Load local JSON data
-      let randomKey = Math.floor(Math.random() * key.length);
-      randomKey = key[randomKey]; // Load local JSON data
+          let randomCom = Math.floor(Math.random() * company.length);
+          randomCom = company[randomCom]; // Load local JSON data
+          let randomKey = Math.floor(Math.random() * key.length);
+          randomKey = key[randomKey]; // Load local JSON data
 
-      console.log('randomCom', randomCom);
-      console.log('randomKey', randomKey);
-
-      keyword = `${randomCom} ${randomKey}`;
+          // console.log('randomCom', randomCom);
+          // console.log('randomKey', randomKey);
+          let pendingKeyword = `${randomCom} ${randomKey}`;
+          const existingTerm = await this.db.getTerm(pendingKeyword, this.date);
+          if (existingTerm) {
+            console.log(
+              `term ${pendingKeyword} already exists in ${this.date}`,
+            );
+            console.log(`attempt ${attemptCount} of ${maxAttempts}`);
+            // create a new term
+          } else {
+            console.log('term does not exist', existingTerm);
+            keyword = pendingKeyword;
+            break;
+          }
+        }
+        if (attemptCount >= maxAttempts) {
+          console.log('max attempts reached, next date');
+          this.date.setDate(this.date.getDate() + 1);
+        } else {
+          break;
+        }
+      }
     }
-
+    //Store this round searchTerm
+    console.log('creating search term', keyword, this.round);
+    this.db.createSearchTerm(keyword, this.round, this.date);
     return encodeURIComponent(keyword);
   }
 
@@ -130,7 +149,7 @@ class TwitterTask {
     let query = {
       limit: 100, // unused
       searchTerm: this.searchTerm,
-      query: `https://twitter.com/search?q=${'Switch'}%20until%3A2023-12-31%20since%3A2022-07-01&src=typed_query&f=top`,
+      query: `https://twitter.com/search?q=${this.searchTerm}%20until%3A${this.date.getDate() + 1}%20since%3A${this.date}&src=typed_query&f=top`,
       depth: 3,
       round: this.round,
       recursive: true,
@@ -232,11 +251,16 @@ module.exports = TwitterTask;
  * @param {*} cid
  * @returns promise<JSON>
  */
-const sleep = (ms) => {
+const sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-const getJSONFromCID = async (cid, fileName, maxRetries = 3, retryDelay = 3000) => {
+const getJSONFromCID = async (
+  cid,
+  fileName,
+  maxRetries = 3,
+  retryDelay = 3000,
+) => {
   let url = `https://${cid}.ipfs.dweb.link/${fileName}`;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -249,7 +273,9 @@ const getJSONFromCID = async (cid, fileName, maxRetries = 3, retryDelay = 3000) 
     } catch (error) {
       console.log(`Attempt ${attempt} failed: ${error.message}`);
       if (attempt < maxRetries) {
-        console.log(`Waiting for ${retryDelay / 1000} seconds before retrying...`);
+        console.log(
+          `Waiting for ${retryDelay / 1000} seconds before retrying...`,
+        );
         await sleep(retryDelay);
       } else {
         return false; // Rethrow the last error

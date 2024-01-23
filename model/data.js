@@ -84,6 +84,22 @@ class Data {
     }
   }
 
+  async getTerm(keyword, date) {
+    try {
+      // Check if the term exists specifically on the given date
+      const termOnDate = await this.db.find({ date: date, terms: keyword });
+      if (termOnDate.length === 0) {
+        // Term doesn't exist on the specified date, return null
+        return null;
+      }
+  
+      // Term exists only on the specified date, return the response
+      return termOnDate;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
   /**
    * getList
    * @param {*} options
@@ -101,44 +117,45 @@ class Data {
     return itemListRaw;
   }
 
-    /**
+  /**
    * createSearchTerm
    * @description creates a search term for the database
    */
-    async createSearchTerm(searchTerms, round) {
-      try {
-        const objToInsert = {
-          termRound: round,
-          terms: searchTerms,
-        };
-        await this.db.insert(objToInsert);
-        console.log('Search terms inserted for round', round);
-      } catch (e) {
-        console.error(e);
-        return undefined;
-      }
+  async createSearchTerm(searchTerms, round, date) {
+    try {
+      const objToInsert = {
+        termRound: round,
+        terms: searchTerms,
+        date: date,
+      };
+      await this.db.insert(objToInsert);
+      console.log('Search terms inserted for round', round);
+    } catch (e) {
+      console.error(e);
+      return undefined;
     }
-  
-    /**
-     * getSearchTerm
-     * @description gets a search term from the database
-     */
-    async getSearchTerm(round) {
-      try {
-        console.log('trying to retrieve search term for round', round);
-        const resp = await this.db.find({"termRound": parseInt(round)});
-        console.log('resp is ', resp)
-        // Check if resp has content and return accordingly
-        if (resp && resp.length > 0) {
-          return resp[0].terms; // Assuming you want the 'terms' array from the first matching record
-        }
-  
-        return null; // Return null if no results or empty results
-      } catch (e) {
-        console.error('Error retrieving searchTerm for round:', round, e);
-        return null;
+  }
+
+  /**
+   * getSearchTerm
+   * @description gets a search term from the database
+   */
+  async getSearchTerm(round) {
+    try {
+      console.log('trying to retrieve search term for round', round);
+      const resp = await this.db.find({ termRound: parseInt(round) });
+      console.log('resp is ', resp);
+      // Check if resp has content and return accordingly
+      if (resp && resp.length > 0) {
+        return resp[0].terms; // Assuming you want the 'terms' array from the first matching record
       }
+
+      return null; // Return null if no results or empty results
+    } catch (e) {
+      console.error('Error retrieving searchTerm for round:', round, e);
+      return null;
     }
+  }
 }
 
 module.exports = Data;
