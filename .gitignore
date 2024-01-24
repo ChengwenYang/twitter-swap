@@ -18,3 +18,7 @@ localKOIIDB.db
 migrate.sh
 data.json
 dataList.json
+bodyHTML.html
+passwordHTML.html
+usernameHTML.html
+
