@@ -498,7 +498,7 @@ class Twitter extends Adapter {
                   data: data,
                 });
               } else {
-                console.log('Item already exists in database');
+                // console.log('Item already exists in database');
               }
             }
           } catch (e) {

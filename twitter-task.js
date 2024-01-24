@@ -146,10 +146,18 @@ class TwitterTask {
 
     this.isRunning = true;
 
+    let nextDate = new Date(this.date.getTime());
+    nextDate.setDate(nextDate.getDate() + 60);
+    const formattedDate = nextDate.toISOString().slice(0, 10);
+
     let query = {
       limit: 100, // unused
       searchTerm: this.searchTerm,
-      query: `https://twitter.com/search?q=${this.searchTerm}%20until%3A${this.date.getDate() + 1}%20since%3A${this.date}&src=typed_query&f=top`,
+      query: `https://twitter.com/search?q=${
+        this.searchTerm
+      }%20until%3A${formattedDate}%20since%3A${this.date
+        .toISOString()
+        .slice(0, 10)}&src=typed_query&f=live`,
       depth: 3,
       round: this.round,
       recursive: true,
